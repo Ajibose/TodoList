@@ -1,10 +1,18 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 app = FastAPI()
 
+class Task(BaseModel):
+    id: int
+    title: str
+    done: bool
 
-tasks = [
+class TaskGet(BaseModel):
+    title: str | None = None
+
+tasks: list[Task] = [
     {
         "id": 1,
         "title": "Finish BE assigment 1",
@@ -42,6 +50,25 @@ async def get_task(id: int):
             return task
 
     return JSONResponse(status_code=404, content={"error": f"Task {id} not found"})
+
+@app.post("/tasks", status_code=201)
+async def create_task(task: TaskGet):
+
+    if not task.title:
+        return JSONResponse(status_code=400, content={"error": "title is empty"})
+
+    last_id = tasks[-1]["id"] if tasks else 0
+
+    new_task = Task(
+        id=last_id + 1,
+        title=task.title,
+        done=False
+    )
+
+    tasks.append(new_task)
+    return new_task
+
+# @app
 
 if __name__ == "__main__":
     import uvicorn
