@@ -1,16 +1,21 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from typing import TypedDict
 
 app = FastAPI()
 
-class Task(BaseModel):
+class Task(TypedDict):
     id: int
     title: str
     done: bool
 
 class TaskGet(BaseModel):
     title: str | None = None
+
+class TaskUpdate(BaseModel):
+    title: str | None = None
+    done: bool | None = None
 
 tasks: list[Task] = [
     {
@@ -53,22 +58,41 @@ async def get_task(id: int):
 
 @app.post("/tasks", status_code=201)
 async def create_task(task: TaskGet):
-
     if not task.title:
         return JSONResponse(status_code=400, content={"error": "title is empty"})
 
     last_id = tasks[-1]["id"] if tasks else 0
 
-    new_task = Task(
-        id=last_id + 1,
-        title=task.title,
-        done=False
-    )
+    new_task = {
+        "id": last_id + 1,
+        "title": task.title,
+        "done": False
+    }
 
     tasks.append(new_task)
     return new_task
 
-# @app
+@app.put("/tasks/{id}", status_code=200)
+async def update_task(id: int, data: TaskUpdate):
+    task = next((task for task in tasks if task["id"] == id), None)
+    if not task:
+        return JSONResponse(status_code=404, content={"error": f"Task with id {id} not found"})
+
+    if data.title is not None:
+        task["title"] = data.title
+
+    if data.done is not None:
+        task["done"] = data.done
+
+    return task
+    
+@app.delete("/tasks/{id}", status_code=204)
+async def remove_task(id: int):
+    task = next((task for task in tasks if task["id"] == id), None)
+    if not task:
+        return JSONResponse(status_code=404, content={"error": f"Task with id {id} not found"})
+
+    tasks.remove(task)
 
 if __name__ == "__main__":
     import uvicorn
