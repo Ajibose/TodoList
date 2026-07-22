@@ -47,8 +47,12 @@ async def check_health():
 
 
 @app.get("/tasks")
-async def get_all_tasks():
+async def get_all_tasks(done: bool | None = None, search: str | None = None):
     """Retrived all stored tasks"""
+    if done is not None:
+        finished_task = [task for task in tasks if task["done"] == done]
+        return finished_task
+
     return tasks
 
 @app.get("/tasks/{id}")
