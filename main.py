@@ -68,6 +68,14 @@ async def get_all_tasks(done: bool | None = None, search: str | None = None):
 
     return result
 
+@app.get("/stats")
+async def get_api_stats():
+    total_tasks = len(tasks)
+    done_tasks_size = len(list(filter(lambda t: t["done"] == True, tasks)))
+    opened_tasks = total_tasks - done_tasks_size
+
+    return {"total": total_tasks, "done": done_tasks_size, "open": opened_tasks}
+
 @app.get("/tasks/{id}")
 async def get_task(id: int):
     """Get task with id from the stored tasks or 404 if not found"""
