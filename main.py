@@ -32,17 +32,7 @@ tasks: list[Task] = [
         "id": 3,
         "title": "Watch Kanz day 2 recording",
         "done": False
-    },
-    {
-        "id": 3,
-        "title": "Buy Bread",
-        "done": True
-    },
-    {
-        "id": 3,
-        "title": "Buy Milk",
-        "done": False
-    },
+    }
 ]
 
 @app.get("/")
@@ -70,6 +60,7 @@ async def get_all_tasks(done: bool | None = None, search: str | None = None):
 
 @app.get("/stats")
 async def get_api_stats():
+    """Get the API stats"""
     total_tasks = len(tasks)
     done_tasks_size = len(list(filter(lambda t: t["done"] == True, tasks)))
     opened_tasks = total_tasks - done_tasks_size
@@ -132,6 +123,28 @@ async def remove_task(id: int):
         return JSONResponse(status_code=404, content={"error": f"Task with id {id} not found"})
 
     tasks.remove(task)
+
+@app.post("/reset", status_code=204)
+async def reset_tasks():
+    """Reset the tasks to the initial tasks"""
+    global tasks
+    tasks = [
+        {
+            "id": 1,
+            "title": "Finish BE assigment 1",
+            "done": False
+        },
+        {
+            "id": 2,
+            "title": "AI fluency assignment 1",
+            "done": True
+        },
+        {
+            "id": 3,
+            "title": "Watch Kanz day 2 recording",
+            "done": False
+        }
+    ]
 
 if __name__ == "__main__":
     import uvicorn
