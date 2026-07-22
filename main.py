@@ -32,7 +32,17 @@ tasks: list[Task] = [
         "id": 3,
         "title": "Watch Kanz day 2 recording",
         "done": False
-    }
+    },
+    {
+        "id": 3,
+        "title": "Buy Bread",
+        "done": True
+    },
+    {
+        "id": 3,
+        "title": "Buy Milk",
+        "done": False
+    },
 ]
 
 @app.get("/")
@@ -49,11 +59,14 @@ async def check_health():
 @app.get("/tasks")
 async def get_all_tasks(done: bool | None = None, search: str | None = None):
     """Retrived all stored tasks"""
+    result = tasks
     if done is not None:
-        finished_task = [task for task in tasks if task["done"] == done]
-        return finished_task
+        result = [task for task in result if task["done"] == done]
 
-    return tasks
+    if search:
+        result = [task for task in result if search in task["title"]]
+
+    return result
 
 @app.get("/tasks/{id}")
 async def get_task(id: int):
