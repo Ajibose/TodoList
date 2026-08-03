@@ -2,8 +2,25 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import TypedDict
+import sqlite3
+
 
 app = FastAPI()
+
+conn = sqlite3.connect("tasks.db", check_same_thread=False, timeout=5)
+conn.row_factory = sqlite3.Row
+
+cursor = conn.cursor()
+cursor.execute("PRAGMA journal_mode=WAL")
+
+cursor.execute(
+    """CREATE TABLE IF NOT EXISTS tasks(
+        id INTEGER PRIMARY KEY,
+        title TEXT NOT NULL,
+        done INTEGER NOT NULL DEFAULT 0
+    )"""
+)
+conn.commit()
 
 class Task(TypedDict):
     id: int
@@ -34,6 +51,20 @@ tasks: list[Task] = [
         "done": False
     }
 ]
+
+def seed_db(tasks):
+    for task in tasks:
+        cursor.execute(
+            "INSERT INTO tasks (title, done) vALUES (?, ?)",
+            (task["title"], task["done"])
+        )
+
+cursor.execute("SELECT COUNT(*) FROM tasks")
+row_count = cursor.fetchone()
+if row_count[0] == 0:
+    seed_db(tasks)
+    conn.commit()
+
 
 @app.get("/")
 async def root():
@@ -148,4 +179,5 @@ async def reset_tasks():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
