@@ -101,7 +101,7 @@ def get_all_tasks(done: bool | None = None, search: str | None = None):
         base_query = f"{base_query} WHERE"
         
 
-    cursor.execute(f"{base_query} {' AND '.join(where_clause)}", tuple(values))
+    cursor.execute(f"{base_query} {' AND '.join(where_clause)} ORDER BY title", tuple(values))
     result = cursor.fetchall()
 
     tasks = [
@@ -112,12 +112,20 @@ def get_all_tasks(done: bool | None = None, search: str | None = None):
     return tasks
 
 @app.get("/stats")
-async def get_api_stats():
+def get_api_stats():
     """Get the API stats"""
-    total_tasks = len(tasks)
-    done_tasks_size = len(list(filter(lambda t: t["done"] == True, tasks)))
-    opened_tasks = total_tasks - done_tasks_size
+    cursor.execute(
+        "SELECT COUNT(*) AS total,\
+                SUM(done = 1) AS done,\
+                SUM(done = 0) AS open\
+        FROM tasks"
+    )
+    
+    result = cursor.fetchone()
 
+    total_tasks = result["total"]
+    done_tasks_size = result["done"]
+    opened_tasks = result["open"]
     return {"total": total_tasks, "done": done_tasks_size, "open": opened_tasks}
 
 @app.get("/tasks/{id}")
