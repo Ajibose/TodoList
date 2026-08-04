@@ -175,6 +175,7 @@ def remove_task(id: int):
 
     Return 404 if no task found
     """
+    
     cursor.execute("DELETE FROM tasks WHERE id = ?", (id, ))
     conn.commit()
 
