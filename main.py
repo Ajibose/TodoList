@@ -87,6 +87,9 @@ def get_all_tasks(done: bool | None = None, search: str | None = None):
     """Retrived all stored tasks"""
     where_clause = []
     values = []
+    if done is not None:
+        where_clause.append("done = ?")
+        values.append(done)
 
     if search:
         where_clause.append("title LIKE ?")
