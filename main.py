@@ -85,18 +85,26 @@ async def check_health():
 @app.get("/tasks")
 def get_all_tasks(done: bool | None = None, search: str | None = None):
     """Retrived all stored tasks"""
-    cursor.execute("SELECT * FROM tasks")
+    where_clause = []
+    values = []
+
+    if search:
+        where_clause.append("title LIKE ?")
+        values.append(f"%{search}%")
+
+    base_query = "SELECT * FROM tasks"
+
+    if where_clause:
+        base_query = f"{base_query} WHERE"
+        
+
+    cursor.execute(f"{base_query} {' AND '.join(where_clause)}", tuple(values))
     result = cursor.fetchall()
+
     tasks = [
         {"id": task["id"], "title": task["title"], "done": bool(task["done"])}
         for task in result   
     ]
-
-    if done is not None:
-        tasks = [task for task in tasks if task["done"] == done]
-
-    if search:
-        tasks = [task for task in tasks if search in task["title"]]
 
     return tasks
 
@@ -175,7 +183,7 @@ def remove_task(id: int):
 
     Return 404 if no task found
     """
-    
+
     cursor.execute("DELETE FROM tasks WHERE id = ?", (id, ))
     conn.commit()
 
