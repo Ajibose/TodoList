@@ -76,18 +76,23 @@ async def check_health():
     """Checks the status of the API"""
     return {"status": "ok"}
 
-
 @app.get("/tasks")
-async def get_all_tasks(done: bool | None = None, search: str | None = None):
+def get_all_tasks(done: bool | None = None, search: str | None = None):
     """Retrived all stored tasks"""
-    result = tasks
+    cursor.execute("SELECT * FROM tasks")
+    result = cursor.fetchall()
+    tasks = [
+        {"id": task["id"], "title": task["title"], "done": bool(task["done"])}
+        for task in result   
+    ]
+
     if done is not None:
-        result = [task for task in result if task["done"] == done]
+        tasks = [task for task in tasks if task["done"] == done]
 
     if search:
-        result = [task for task in result if search in task["title"]]
+        tasks = [task for task in tasks if search in task["title"]]
 
-    return result
+    return tasks
 
 @app.get("/stats")
 async def get_api_stats():
@@ -101,11 +106,17 @@ async def get_api_stats():
 @app.get("/tasks/{id}")
 async def get_task(id: int):
     """Get task with id from the stored tasks or 404 if not found"""
-    for task in tasks:
-        if task["id"] == id:
-            return task
+    cursor.execute("SELECT * FROM tasks WHERE id = ?", (id, ))
 
-    return JSONResponse(status_code=404, content={"error": f"Task {id} not found"})
+    task = cursor.fetchone()
+    if not task:
+        return JSONResponse(status_code=404, content={"error": f"Task {id} not found"})
+    
+    task = dict(task)
+    task["done"] = bool(task["done"])
+
+    return task
+    
 
 @app.post("/tasks", status_code=201)
 async def create_task(task: TaskGet):
