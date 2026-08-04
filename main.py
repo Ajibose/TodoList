@@ -2,10 +2,16 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import TypedDict
+from fastapi.exceptions import RequestValidationError
 import sqlite3
 
 
 app = FastAPI()
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    return JSONResponse(status_code=400, content={"error": "Invalid request body"})
+
 
 conn = sqlite3.connect("tasks.db", check_same_thread=False, timeout=5)
 conn.row_factory = sqlite3.Row
@@ -104,7 +110,7 @@ async def get_api_stats():
     return {"total": total_tasks, "done": done_tasks_size, "open": opened_tasks}
 
 @app.get("/tasks/{id}")
-async def get_task(id: int):
+def get_task(id: int):
     """Get task with id from the stored tasks or 404 if not found"""
     cursor.execute("SELECT * FROM tasks WHERE id = ?", (id, ))
 
@@ -119,52 +125,61 @@ async def get_task(id: int):
     
 
 @app.post("/tasks", status_code=201)
-async def create_task(task: TaskGet):
+def create_task(task: TaskGet):
     """Create a new task
         Return 400 if title is absent or empty
     """
     if not task.title:
         return JSONResponse(status_code=400, content={"error": "title is empty"})
 
-    last_id = tasks[-1]["id"] if tasks else 0
+    cursor.execute("INSERT INTO tasks (title) VALUES (?)", (task.title, ))
+    conn.commit()
 
-    new_task = {
-        "id": last_id + 1,
-        "title": task.title,
-        "done": False
-    }
+    insertedID = cursor.lastrowid
 
-    tasks.append(new_task)
-    return new_task
+    return {"id": insertedID, "title": task.title, "done": False}
 
 @app.put("/tasks/{id}", status_code=200)
-async def update_task(id: int, data: TaskUpdate):
+def update_task(id: int, data: TaskUpdate):
     """Update task with the id
     Return 404 if no task with that id found
     """
-    task = next((task for task in tasks if task["id"] == id), None)
-    if not task:
+    if data.title is None and data.done is None:
+        return JSONResponse(status_code=400, content={"error": "Update field can't be empty"})
+
+    if data.title == "":
+        return JSONResponse(status_code=400, content={"error": "Title can't be empty"})
+
+    if data.title is not None and data.done is not None:
+        cursor.execute("UPDATE tasks SET title = ?, done = ? WHERE id = ?", (data.title, data.done, id))
+    elif data.title is None and data.done is not None:
+        cursor.execute("UPDATE tasks SET done = ? WHERE id = ?", (data.done, id))
+    else:
+        cursor.execute("UPDATE tasks SET title = ? WHERE id = ?", (data.title, id))
+
+    conn.commit()
+
+    if cursor.rowcount == 0:
         return JSONResponse(status_code=404, content={"error": f"Task with id {id} not found"})
 
-    if data.title is not None:
-        task["title"] = data.title
+    cursor.execute("SELECT * FROM tasks WHERE id = ?", (id, ))
+    task = dict(cursor.fetchone())
 
-    if data.done is not None:
-        task["done"] = data.done
+    task["done"] = bool(task["done"])
 
     return task
-    
+
 @app.delete("/tasks/{id}", status_code=204)
-async def remove_task(id: int):
+def remove_task(id: int):
     """Remove a task from the stored tasks
 
     Return 404 if no task found
     """
-    task = next((task for task in tasks if task["id"] == id), None)
-    if not task:
-        return JSONResponse(status_code=404, content={"error": f"Task with id {id} not found"})
+    cursor.execute("DELETE FROM tasks WHERE id = ?", (id, ))
+    conn.commit()
 
-    tasks.remove(task)
+    if cursor.rowcount == 0:
+        return JSONResponse(status_code=404, content={"error": f"Task with id {id} not found"})
 
 @app.post("/reset", status_code=204)
 async def reset_tasks():
