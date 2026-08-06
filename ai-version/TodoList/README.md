@@ -35,7 +35,6 @@ uv run main.py
 ```
 
 ## Example
-
 ![Development](image.png)
 ![curl request](image2.png)
 ![swagger](image3.png)

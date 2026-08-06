@@ -43,6 +43,11 @@ uv run main.py
 
 **New cursor per request**: It directly solves the thread-safety problem with cursor results that my shared cursor is vulnerable to so two requests won't interfere with each others operations
 
+# Running Container
+![alt text](container.png)
+
+![alt text](image-1.png)
+
 ## Example
 
 ![Development](image.png)
