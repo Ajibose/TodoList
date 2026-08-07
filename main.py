@@ -3,8 +3,9 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import TypedDict
 from fastapi.exceptions import RequestValidationError
-import sqlite3
-
+from pydantic_settings import BaseSettings
+from psycopg.rows import dict_row
+import psycopg
 
 app = FastAPI()
 
@@ -12,18 +13,21 @@ app = FastAPI()
 async def validation_exception_handler(request, exc):
     return JSONResponse(status_code=400, content={"error": "Invalid request body"})
 
+class Settings(BaseSettings):
+    database_url: str
 
-conn = sqlite3.connect("tasks.db", check_same_thread=False, timeout=5)
-conn.row_factory = sqlite3.Row
+    class Config():
+        env_file = ".env"
 
-cursor = conn.cursor()
-cursor.execute("PRAGMA journal_mode=WAL")
+settings = Settings()
 
-cursor.execute(
+conn = psycopg.connect(settings.database_url, row_factory=dict_row)
+
+conn.execute(
     """CREATE TABLE IF NOT EXISTS tasks(
-        id INTEGER PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         title TEXT NOT NULL,
-        done INTEGER NOT NULL DEFAULT 0
+        done BOOLEAN NOT NULL DEFAULT False
     )"""
 )
 conn.commit()
@@ -58,17 +62,18 @@ tasks: list[Task] = [
     }
 ]
 
-def seed_db(tasks):
+def seed_db(tasks, cursor):
     for task in tasks:
         cursor.execute(
-            "INSERT INTO tasks (title, done) vALUES (?, ?)",
+            "INSERT INTO tasks (title, done) VALUES (%s, %s)",
             (task["title"], task["done"])
         )
 
-cursor.execute("SELECT COUNT(*) FROM tasks")
+cursor = conn.cursor()
+cursor.execute("SELECT COUNT(*) AS count FROM tasks")
 row_count = cursor.fetchone()
-if row_count[0] == 0:
-    seed_db(tasks)
+if row_count["count"] == 0:
+    seed_db(tasks, cursor)
     conn.commit()
 
 
