@@ -1,7 +1,12 @@
-import psycopg
 from config import settings
+from psycopg.rows import dict_row
+import psycopg
+import config
+
+settings = config.settings
 
 conn = psycopg.connect(settings.database_url, row_factory=dict_row)
+
 
 def init_db() -> None:
     cursor = conn.cursor()
@@ -87,7 +92,7 @@ def get_task(id: int) -> dict | None:
 
         return task
 
-def update_task(id: int, done: bool | None = None, title: str = ""):
+def update_task(id: int, done: bool | None = None, title: str | None = None) -> dict | None:
     with conn:
         cursor = conn.cursor()
         if title is not None and done is not None:
@@ -105,11 +110,12 @@ def update_task(id: int, done: bool | None = None, title: str = ""):
         
         return updated_task
 
-def remove_task(id: int):
+def remove_task(id: int) -> dict | None:
     with conn:
         result = conn.execute("DELETE FROM tasks WHERE id = %s RETURNING *", (id, ))
 
-        if result is None:
+        removed_task = result.fetchone() 
+        if removed_task is None:
             return None
 
-        return result
+        return removed_task

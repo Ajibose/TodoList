@@ -3,78 +3,34 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import TypedDict
 from fastapi.exceptions import RequestValidationError
-from pydantic_settings import BaseSettings
-from psycopg.rows import dict_row
-import psycopg
+
+import db
+
 
 app = FastAPI()
+
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
     return JSONResponse(status_code=400, content={"error": "Invalid request body"})
 
-class Settings(BaseSettings):
-    database_url: str
 
-    class Config():
-        env_file = ".env"
+db.init_db()
 
-settings = Settings()
-
-conn = psycopg.connect(settings.database_url, row_factory=dict_row)
-
-conn.execute(
-    """CREATE TABLE IF NOT EXISTS tasks(
-        id SERIAL PRIMARY KEY,
-        title TEXT NOT NULL,
-        done BOOLEAN NOT NULL DEFAULT False
-    )"""
-)
-conn.commit()
 
 class Task(TypedDict):
     id: int
     title: str
     done: bool
 
+
 class TaskGet(BaseModel):
     title: str | None = None
+
 
 class TaskUpdate(BaseModel):
     title: str | None = None
     done: bool | None = None
-
-tasks: list[Task] = [
-    {
-        "id": 1,
-        "title": "Finish BE assigment 1",
-        "done": False
-    },
-    {
-        "id": 2,
-        "title": "AI fluency assignment 1",
-        "done": True
-    },
-    {
-        "id": 3,
-        "title": "Watch Kanz day 2 recording",
-        "done": False
-    }
-]
-
-def seed_db(tasks, cursor):
-    for task in tasks:
-        cursor.execute(
-            "INSERT INTO tasks (title, done) VALUES (%s, %s)",
-            (task["title"], task["done"])
-        )
-
-cursor = conn.cursor()
-cursor.execute("SELECT COUNT(*) AS count FROM tasks")
-row_count = cursor.fetchone()
-if row_count["count"] == 0:
-    seed_db(tasks, cursor)
-    conn.commit()
 
 
 @app.get("/")
@@ -90,29 +46,7 @@ async def check_health():
 @app.get("/tasks")
 def get_all_tasks(done: bool | None = None, search: str | None = None):
     """Retrived all stored tasks"""
-    where_clause = []
-    values = []
-    if done is not None:
-        where_clause.append("done = ?")
-        values.append(done)
-
-    if search:
-        where_clause.append("title LIKE ?")
-        values.append(f"%{search}%")
-
-    base_query = "SELECT * FROM tasks"
-
-    if where_clause:
-        base_query = f"{base_query} WHERE"
-        
-
-    cursor.execute(f"{base_query} {' AND '.join(where_clause)} ORDER BY title", tuple(values))
-    result = cursor.fetchall()
-
-    tasks = [
-        {"id": task["id"], "title": task["title"], "done": bool(task["done"])}
-        for task in result   
-    ]
+    tasks = db.list_tasks(done, search)
 
     return tasks
 
@@ -136,14 +70,11 @@ def get_api_stats():
 @app.get("/tasks/{id}")
 def get_task(id: int):
     """Get task with id from the stored tasks or 404 if not found"""
-    cursor.execute("SELECT * FROM tasks WHERE id = ?", (id, ))
 
-    task = cursor.fetchone()
+    task = db.get_task(id)
+
     if not task:
         return JSONResponse(status_code=404, content={"error": f"Task {id} not found"})
-    
-    task = dict(task)
-    task["done"] = bool(task["done"])
 
     return task
     
