@@ -11,7 +11,7 @@ conn = psycopg.connect(settings.database_url, row_factory=dict_row)
 def init_db() -> None:
     cursor = conn.cursor()
 
-    with conn:
+    with conn.transaction():
         cursor.execute(
             """CREATE TABLE IF NOT EXISTS tasks(
                 id SERIAL PRIMARY KEY,
@@ -49,7 +49,7 @@ def seed_db(cursor: psycopg.Cursor) -> None:
 
 
 def create_task(title: str, done: bool=False) -> dict:
-    with conn:
+    with conn.transaction():
         result = conn.execute(
             "INSERT INTO tasks (title, done) VALUES (%s, %s) RETURNING *",
             (title, done)
@@ -74,7 +74,7 @@ def list_tasks(done: bool | None = None, search: str = "") -> list[dict]:
     if where_clause:
         base_query = f"{base_query} WHERE"
         
-    with conn:
+    with conn.transaction():
         result = conn.execute(
             f"{base_query} {' AND '.join(where_clause)} ORDER BY title", 
             tuple(values)
@@ -83,7 +83,7 @@ def list_tasks(done: bool | None = None, search: str = "") -> list[dict]:
         return result.fetchall()
 
 def get_task(id: int) -> dict | None:
-    with conn:
+    with conn.transaction():
         result = conn.execute("SELECT * FROM tasks WHERE id = %s", (id, ))
 
         task = result.fetchone()
@@ -93,7 +93,7 @@ def get_task(id: int) -> dict | None:
         return task
 
 def update_task(id: int, done: bool | None = None, title: str | None = None) -> dict | None:
-    with conn:
+    with conn.transaction():
         cursor = conn.cursor()
         if title is not None and done is not None:
             cursor.execute("UPDATE tasks SET title = %s, done = %s WHERE id = %s RETURNING *", (title, done, id))
@@ -111,7 +111,7 @@ def update_task(id: int, done: bool | None = None, title: str | None = None) -> 
         return updated_task
 
 def remove_task(id: int) -> dict | None:
-    with conn:
+    with conn.transaction():
         result = conn.execute("DELETE FROM tasks WHERE id = %s RETURNING *", (id, ))
 
         removed_task = result.fetchone() 

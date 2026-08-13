@@ -46,6 +46,7 @@ async def check_health():
 @app.get("/tasks")
 def get_all_tasks(done: bool | None = None, search: str | None = None):
     """Retrived all stored tasks"""
+
     tasks = db.list_tasks(done, search)
 
     return tasks
@@ -162,4 +163,4 @@ async def reset_tasks():
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=3000)
