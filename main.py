@@ -88,12 +88,10 @@ def create_task(task: TaskGet):
     if not task.title:
         return JSONResponse(status_code=400, content={"error": "title is empty"})
 
-    cursor.execute("INSERT INTO tasks (title) VALUES (?)", (task.title, ))
-    conn.commit()
 
-    insertedID = cursor.lastrowid
+    task = db.create_task(task.title)
 
-    return {"id": insertedID, "title": task.title, "done": False}
+    return task
 
 @app.put("/tasks/{id}", status_code=200)
 def update_task(id: int, data: TaskUpdate):
@@ -106,22 +104,10 @@ def update_task(id: int, data: TaskUpdate):
     if data.title == "":
         return JSONResponse(status_code=400, content={"error": "Title can't be empty"})
 
-    if data.title is not None and data.done is not None:
-        cursor.execute("UPDATE tasks SET title = ?, done = ? WHERE id = ?", (data.title, data.done, id))
-    elif data.title is None and data.done is not None:
-        cursor.execute("UPDATE tasks SET done = ? WHERE id = ?", (data.done, id))
-    else:
-        cursor.execute("UPDATE tasks SET title = ? WHERE id = ?", (data.title, id))
+    task = db.update_task(id, done=data.done, title=data.title)
 
-    conn.commit()
-
-    if cursor.rowcount == 0:
+    if task is None:
         return JSONResponse(status_code=404, content={"error": f"Task with id {id} not found"})
-
-    cursor.execute("SELECT * FROM tasks WHERE id = ?", (id, ))
-    task = dict(cursor.fetchone())
-
-    task["done"] = bool(task["done"])
 
     return task
 
@@ -132,10 +118,9 @@ def remove_task(id: int):
     Return 404 if no task found
     """
 
-    cursor.execute("DELETE FROM tasks WHERE id = ?", (id, ))
-    conn.commit()
+    task = db.remove_task(id)
 
-    if cursor.rowcount == 0:
+    if task is None:
         return JSONResponse(status_code=404, content={"error": f"Task with id {id} not found"})
 
 @app.post("/reset", status_code=204)

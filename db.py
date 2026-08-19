@@ -119,3 +119,19 @@ def remove_task(id: int) -> dict | None:
             return None
 
         return removed_task
+
+def get_stat() -> dict:
+    with conn.transaction():
+        result = conn.execute(
+            "SELECT COUNT(*) AS total,\
+                COUNT(*) FILTER (WHERE done) AS done,\
+                COUNT(*) FILTER (WHERE NOT done) AS open\
+            FROM tasks"
+        )
+    
+        stat = result.fetchone()
+
+        total_tasks = stat["total"]
+        done_tasks_size = stat["done"]
+        opened_tasks = stat["open"]
+        return {"total": total_tasks, "done": done_tasks_size, "open": opened_tasks}
