@@ -54,18 +54,9 @@ def get_all_tasks(done: bool | None = None, search: str | None = None):
 @app.get("/stats")
 def get_api_stats():
     """Get the API stats"""
-    cursor.execute(
-        "SELECT COUNT(*) AS total,\
-                SUM(done = 1) AS done,\
-                SUM(done = 0) AS open\
-        FROM tasks"
-    )
-    result = cursor.fetchone()
+    stat = db.get_stat()
 
-    total_tasks = result["total"]
-    done_tasks_size = result["done"]
-    opened_tasks = result["open"]
-    return {"total": total_tasks, "done": done_tasks_size, "open": opened_tasks}
+    return stat
 
 @app.get("/tasks/{id}")
 def get_task(id: int):
