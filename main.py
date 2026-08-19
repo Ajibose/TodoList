@@ -60,7 +60,6 @@ def get_api_stats():
                 SUM(done = 0) AS open\
         FROM tasks"
     )
-    
     result = cursor.fetchone()
 
     total_tasks = result["total"]
