@@ -8,6 +8,7 @@ TodoList is a task management API. It lets you add, list, remove and update task
 `POST /tasks` - Create a new task
 `PUT /tasks/:id` - Update the task with the specified id
 `DELETE /tasks/:id` - Remove the task with the id
+`GET /stats` - Get table stat
 
 ###  Installation & Usage
 You need to have uv installed
@@ -16,23 +17,25 @@ You need to have uv installed
 git clone https://github.com/TodoList
 cd TodoList
 ```
-
-2. **Install Requirements**
+2. **Run with just one command**
 ```bash
-uv add
+docker compose up
 ```
 
-3. **Run the project**
-You can run the project using
-```bash
-uv run fastapi dev
+### Example usage
+```
+gamp@CL1-T2-06:~$ curl -i http://localhost:3000/tasks
+HTTP/1.1 200 OK
+date: Thu, 20 Aug 2026 14:09:10 GMT
+server: uvicorn
+content-length: 214
+content-type: application/json
+
+[{"id":2,"title":"AI fluency assignment 1","done":true},{"id":4,"title":"Compose test","done":false},{"id":1,"title":"Finish BE assigment 1","done":false},{"id":3,"title":"Watch Kanz day 2 recording","done":false}](base) 
 ```
 
-or
-
-```bash
-uv run main.py
-```
+### Data
+![alt text](image-2.png)
 
 ## AI vs me
 **with conn:** AI used context manager for automatic commit on success and automatic rollback on failure. I used manual conn.commit() with no rollback if something fails halfway.
