@@ -1,0 +1,8 @@
+ai-version/
+.env
+.git
+.venv
+__pycache__
+*.pyc
+tasks.db
+*.png

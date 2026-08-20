@@ -112,6 +112,7 @@ def remove_task(id: int):
 
     if task is None:
         return JSONResponse(status_code=404, content={"error": f"Task with id {id} not found"})
+        
 
 @app.post("/reset", status_code=204)
 async def reset_tasks():
