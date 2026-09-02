@@ -135,3 +135,12 @@ def get_stat() -> dict:
         done_tasks_size = stat["done"]
         opened_tasks = stat["open"]
         return {"total": total_tasks, "done": done_tasks_size, "open": opened_tasks}
+
+def check_health():
+    with conn.transaction():
+        try:
+            conn.execute("SELECT 1")
+            return True
+        except psycopg.Error:
+            return False
+    

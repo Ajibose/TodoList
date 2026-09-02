@@ -44,9 +44,12 @@ async def root():
     return {"name": "Task API", "version": "1.0", "endpoints": ["/tasks"]}
 
 @app.get("/health")
-async def check_health():
+def check_health():
     """Checks the status of the API"""
-    return {"status": "ok"}
+    if db.check_health():
+        return {"status": "ok", "db": "connected"}
+
+    return JSONResponse(status_code=503, content={"status": "down", "db": "disconnected"})
 
 @app.get("/tasks")
 def get_all_tasks(done: bool | None = None, search: str | None = None):
