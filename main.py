@@ -3,9 +3,9 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import TypedDict
 from fastapi.exceptions import RequestValidationError
-
+import redis
 import db
-
+from config import settings
 
 app = FastAPI()
 
@@ -14,9 +14,14 @@ app = FastAPI()
 async def validation_exception_handler(request, exc):
     return JSONResponse(status_code=400, content={"error": "Invalid request body"})
 
-
 db.init_db()
 
+try:
+    r = redis.from_url(settings.redis_url)
+    r.ping()
+    print("Redis connected")
+except redis.ConnectionError:
+    print("Redis not available")
 
 class Task(TypedDict):
     id: int
