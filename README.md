@@ -55,3 +55,17 @@ content-type: application/json
 ![Development](image.png)
 ![curl request](image2.png)
 ![swagger](image3.png)
+
+## Use of Index and EXPLAIN ANALAYZE
+**Index** is used to make looking for data in a table faster. It should be used on a column that is used often to filter for data. Though it should be noted  that, it adds overhead to INSERT, UPDATE and DELETE operation because creating an index on a column will create additional data structure to store the indexed rows and every of those operations will have to do execute their query then proceed to update the data structure created. Moreover, Indexing consumes more disk space
+
+**EXPLAIN ANALYZE** runs a query and shows both the planned strategy (Seq Scan vs Index Scan, estimated costs) and the actual results (real execution time, actual row counts).
+
+## EXPLAIN ANALYZE BEFORE and AFTER INDEXING
+**Before**
+![alt text](image-3.png)
+
+**After**
+![alt text](image-4.png)
+
+As it can be seen above, EXPLAIN ANALYZE still uses a seq scan even after INDEXING the done column of the table when it should have used index scan. This is because of the low number of rows in the table - 3 rows. The postgres query planner is smart to that extent that even with an Index available, it knows that for that small number of rows, using index scan will create more overhead than using seq scan
