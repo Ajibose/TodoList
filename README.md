@@ -34,7 +34,7 @@ content-type: application/json
 ```
 
 ### Data
-![alt text](image-2.png)
+![alt text](./image/image-2.png)
 
 ## AI vs me
 **with conn:** AI used context manager for automatic commit on success and automatic rollback on failure. I used manual conn.commit() with no rollback if something fails halfway.
@@ -46,15 +46,15 @@ content-type: application/json
 **New cursor per request**: It directly solves the thread-safety problem with cursor results that my shared cursor is vulnerable to so two requests won't interfere with each others operations
 
 # Running Container
-![alt text](container.png)
+![alt text](./image/container.png)
 
-![alt text](image-1.png)
+![alt text](./image/image-1.png)
 
 ## Example
 
-![Development](image.png)
-![curl request](image2.png)
-![swagger](image3.png)
+![Development](./image/image.png)
+![curl request](./image/image2.png)
+![swagger](./image/image3.png)
 
 ## Use of Index and EXPLAIN ANALAYZE
 **Index** is used to make looking for data in a table faster. It should be used on a column that is used often to filter for data. Though it should be noted  that, it adds overhead to INSERT, UPDATE and DELETE operation because creating an index on a column will create additional data structure to store the indexed rows and every of those operations will have to do execute their query then proceed to update the data structure created. Moreover, Indexing consumes more disk space
@@ -63,16 +63,16 @@ content-type: application/json
 
 ## EXPLAIN ANALYZE BEFORE and AFTER INDEXING
 **Before**
-![alt text](image-3.png)
+![alt text](./image/image-3.png)
 
 **After**
-![alt text](image-4.png)
+![alt text](./image/image-4.png)
 
 As it can be seen above, EXPLAIN ANALYZE still uses a seq scan even after INDEXING the done column of the table when it should have used index scan. This is because of the low number of rows in the table - 3 rows. The postgres query planner is smart to that extent that even with an Index available, it knows that for that small number of rows, using index scan will create more overhead than using seq scan
 
 ## Docker image Size before and after multi-stage build
 **Before**
-![alt text](image-5.png)
+![alt text](./image/image-5.png)
 
 **After**
-![alt text](image-6.png)
+![alt text](./image/image-6.png)

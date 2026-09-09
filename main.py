@@ -5,7 +5,9 @@ from typing import TypedDict
 from fastapi.exceptions import RequestValidationError
 import redis
 import db
+import auth
 from config import settings
+
 
 app = FastAPI()
 
@@ -37,6 +39,10 @@ class TaskUpdate(BaseModel):
     title: str | None = None
     done: bool | None = None
 
+class AuthData(BaseModel):
+    email: str
+    password: str
+
 
 @app.get("/")
 async def root():
@@ -50,6 +56,18 @@ def check_health():
         return {"status": "ok", "db": "connected"}
 
     return JSONResponse(status_code=503, content={"status": "down", "db": "disconnected"})
+
+@app.post("/auth/signup")
+def sign_up(data: AuthData):
+    access_token = auth.sign_up(data.email, data.password)
+
+    return access_token
+
+@app.post("/auth/signin")
+def sign_in(data: AuthData):
+    access_token = auth.sign_in(data.email, data.password)
+
+    return access_token
 
 @app.get("/tasks")
 def get_all_tasks(done: bool | None = None, search: str | None = None):
