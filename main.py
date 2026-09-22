@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import TypedDict
@@ -7,9 +7,10 @@ import redis
 import db
 import auth
 from config import settings
-
+from auth import JWTBearer
 
 app = FastAPI()
+auth_scheme = JWTBearer()
 
 
 @app.exception_handler(RequestValidationError)
@@ -68,6 +69,14 @@ def sign_in(data: AuthData):
     access_token = auth.sign_in(data.email, data.password)
 
     return access_token
+
+@app.get("/public/info")
+def get_public_info():
+    return {"message": "Welcome stranger! This info is public."}
+
+@app.get("/public/protected", dependencies=[Depends(auth_scheme)])
+def get_private_info():
+    return {"message": "This is protected"}
 
 @app.get("/tasks")
 def get_all_tasks(done: bool | None = None, search: str | None = None):
