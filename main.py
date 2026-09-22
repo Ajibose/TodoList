@@ -64,19 +64,19 @@ def sign_up(data: AuthData):
 
     return access_token
 
-@app.post("/auth/signin")
+@app.post("/auth/login")
 def sign_in(data: AuthData):
-    access_token = auth.sign_in(data.email, data.password)
+    tokens: dict = auth.sign_in(data.email, data.password)
 
-    return access_token
+    return tokens
 
 @app.get("/public/info")
 def get_public_info():
     return {"message": "Welcome stranger! This info is public."}
 
-@app.get("/public/protected", dependencies=[Depends(auth_scheme)])
-def get_private_info():
-    return {"message": "This is protected"}
+@app.get("/public/protected")
+def get_private_info(user: dict = Depends(auth_scheme)):
+    return {"user_data": user}
 
 @app.get("/tasks")
 def get_all_tasks(done: bool | None = None, search: str | None = None):

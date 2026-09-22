@@ -11,16 +11,34 @@ class JWTBearer(HTTPBearer):
     async def __call__(self, request: Request) -> str:
         credentials: HTTPAuthorizationCredentials = await super().__call__(request)
 
-        if not credentials:
-            raise HTTPException(status_code=401, detail={"error": "Access token required"})
-        
-        if credentials.scheme != "Bearer":
+        if credentials:
+            if credentials.scheme != "Bearer":
+                raise HTTPException(status_code=401, detail={"error": "Access token required"})
+            
+            if not credentials.credentials:
+                raise HTTPException(status_code=401, detail={"error": "Access token required"})
+
+            user = self.verify_jwt(credentials.credentials)
+
+            if not user:
+                raise HTTPException(status_code=401, detail={"error": "Invalid or expired token"})
+
+            return {"id": user.id, "email": user.email, "created_at": user.created_at}
+
+        else:
             raise HTTPException(status_code=401, detail={"error": "Access token required"})
 
-        if not credentials.credentials:
-            raise HTTPException(status_code=401, detail={"error": "Access token required"})
 
-        print(credentials)
+    def verify_jwt(self, token: str) -> dict | None:
+        try:
+            response = supa.auth.get_user(jwt=token)
+            if response and response.user:
+                return response.user
+
+            return None
+        except Exception:
+            return None
+
 
 
 def sign_up(email: str, password: str):
@@ -28,7 +46,7 @@ def sign_up(email: str, password: str):
 
     return res.user
 
-def sign_in(email: str, password: str) -> str:
+def sign_in(email: str, password: str) -> dict:
     res = supa.auth.sign_in_with_password({"email": email, "password": password})
 
-    return res.session.access_token
+    return {"access_token": res.session.access_token, "refresh_token": res.session.refresh_token}
