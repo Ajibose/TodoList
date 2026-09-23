@@ -66,9 +66,20 @@ def sign_up(data: AuthData):
 
 @app.post("/auth/login")
 def sign_in(data: AuthData):
-    tokens: dict = auth.sign_in(data.email, data.password)
+    tokens: dict | None = auth.sign_in(data.email, data.password)
+
+    if not tokens:
+        return JSONResponse(status_code=401, content={"error": "Invalid login credentials"})
 
     return tokens
+
+@app.post("/auth/logout", dependencies=[Depends(auth_scheme)], status_code=204)
+def sign_out():
+    auth.sign_out()
+
+@app.get("/protected/dashboard")
+def get_profile(user: dict = Depends(auth_scheme)):
+    return user
 
 @app.get("/public/info")
 def get_public_info():
@@ -170,6 +181,7 @@ async def reset_tasks():
             "done": False
         }
     ]
+
 
 if __name__ == "__main__":
     import uvicorn

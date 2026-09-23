@@ -3,6 +3,7 @@ from fastapi import HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
+from supabase_auth.errors import AuthApiError
 
 class JWTBearer(HTTPBearer):
     def __init__(self):
@@ -46,7 +47,12 @@ def sign_up(email: str, password: str):
 
     return res.user
 
-def sign_in(email: str, password: str) -> dict:
-    res = supa.auth.sign_in_with_password({"email": email, "password": password})
+def sign_in(email: str, password: str) -> dict | None:
+    try:
+        res = supa.auth.sign_in_with_password({"email": email, "password": password})
+        return {"access_token": res.session.access_token, "refresh_token": res.session.refresh_token}
+    except AuthApiError:
+        return None
 
-    return {"access_token": res.session.access_token, "refresh_token": res.session.refresh_token}
+def sign_out():
+    supa.auth.sign_out()
