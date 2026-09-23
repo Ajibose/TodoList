@@ -32,7 +32,7 @@ content-type: application/json
 
 [{"id":2,"title":"AI fluency assignment 1","done":true},{"id":4,"title":"Compose test","done":false},{"id":1,"title":"Finish BE assigment 1","done":false},{"id":3,"title":"Watch Kanz day 2 recording","done":false}](base) 
 ```
-
+ 
 ### Data
 ![alt text](./image/image-2.png)
 
