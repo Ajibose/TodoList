@@ -15,6 +15,7 @@ def init_db() -> None:
         cursor.execute(
             """CREATE TABLE IF NOT EXISTS tasks(
                 id SERIAL PRIMARY KEY,
+                user_id UUID NOT NULL,
                 title TEXT NOT NULL,
                 done BOOLEAN NOT NULL DEFAULT False
             )"""
@@ -28,14 +29,17 @@ def init_db() -> None:
 def seed_db(cursor: psycopg.Cursor) -> None:
     tasks = [
         {
+            "user_id": "b0824b2e-26aa-465f-8db3-8f79c95e1dac",
             "title": "Finish BE assigment 1",
             "done": False
         },
         {
+            "user_id": "b0824b2e-26aa-465f-8db3-8f79c95e1dac",
             "title": "AI fluency assignment 1",
             "done": True
         },
         {
+            "user_id": "b0824b2e-26aa-465f-8db3-8f79c95e1dac",
             "title": "Watch Kanz day 2 recording",
             "done": False
         }
@@ -43,24 +47,24 @@ def seed_db(cursor: psycopg.Cursor) -> None:
 
     for task in tasks:
         cursor.execute(
-            "INSERT INTO tasks (title, done) VALUES (%s, %s)",
-            (task["title"], task["done"])
+            "INSERT INTO tasks (user_id, title, done) VALUES (%s, %s, %s)",
+            (task["user_id"], task["title"], task["done"])
         )
 
 
-def create_task(title: str, done: bool=False) -> dict:
+def create_task(id, title: str, done: bool=False) -> dict:
     with conn.transaction():
         result = conn.execute(
-            "INSERT INTO tasks (title, done) VALUES (%s, %s) RETURNING *",
-            (title, done)
+            "INSERT INTO tasks (user_id, title, done) VALUES (%s, %s, %s) RETURNING *",
+            (id, title, done)
         ) 
 
         task = result.fetchone()
         return task
 
-def list_tasks(done: bool | None = None, search: str = "") -> list[dict]:
-    where_clause = []
-    values = []
+def list_tasks(id, done: bool | None = None, search: str = "") -> list[dict]:
+    where_clause = ["user_id = %s"]
+    values = [id]
     if done is not None:
         where_clause.append("done = %s")
         values.append(done)
@@ -69,10 +73,7 @@ def list_tasks(done: bool | None = None, search: str = "") -> list[dict]:
         where_clause.append("title LIKE %s")
         values.append(f"%{search}%")
 
-    base_query = "SELECT * FROM tasks"
-
-    if where_clause:
-        base_query = f"{base_query} WHERE"
+    base_query = f"SELECT * FROM tasks WHERE"
         
     with conn.transaction():
         result = conn.execute(
@@ -82,9 +83,9 @@ def list_tasks(done: bool | None = None, search: str = "") -> list[dict]:
 
         return result.fetchall()
 
-def get_task(id: int) -> dict | None:
+def get_task(user_id: str, id: int) -> dict | None:
     with conn.transaction():
-        result = conn.execute("SELECT * FROM tasks WHERE id = %s", (id, ))
+        result = conn.execute("SELECT * FROM tasks WHERE id = %s and user_id=%s", (id, user_id))
 
         task = result.fetchone()
         if not task:
@@ -92,15 +93,15 @@ def get_task(id: int) -> dict | None:
 
         return task
 
-def update_task(id: int, done: bool | None = None, title: str | None = None) -> dict | None:
+def update_task(user_id: str, id: int, done: bool | None = None, title: str | None = None) -> dict | None:
     with conn.transaction():
         cursor = conn.cursor()
         if title is not None and done is not None:
-            cursor.execute("UPDATE tasks SET title = %s, done = %s WHERE id = %s RETURNING *", (title, done, id))
+            cursor.execute("UPDATE tasks SET title = %s, done = %s WHERE id = %s  and user_id = %s RETURNING *", (title, done, id, user_id))
         elif title is None and done is not None:
-            cursor.execute("UPDATE tasks SET done = %s WHERE id = %s RETURNING *", (done, id))
+            cursor.execute("UPDATE tasks SET done = %s WHERE id = %s and user_id = %s RETURNING *", (done, id, user_id))
         else:
-            cursor.execute("UPDATE tasks SET title = %s WHERE id = %s RETURNING *", (title, id))
+            cursor.execute("UPDATE tasks SET title = %s WHERE id = %s  and user_id = %s RETURNING *", (title, id, user_id))
 
         updated_task = cursor.fetchone()
 
@@ -110,9 +111,9 @@ def update_task(id: int, done: bool | None = None, title: str | None = None) -> 
         
         return updated_task
 
-def remove_task(id: int) -> dict | None:
+def remove_task(user_id: str, id: int) -> dict | None:
     with conn.transaction():
-        result = conn.execute("DELETE FROM tasks WHERE id = %s RETURNING *", (id, ))
+        result = conn.execute("DELETE FROM tasks WHERE id = %s and user_id = %s RETURNING *", (id, user_id))
 
         removed_task = result.fetchone() 
         if removed_task is None:

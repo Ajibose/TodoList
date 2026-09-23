@@ -90,10 +90,10 @@ def get_private_info(user: dict = Depends(auth_scheme)):
     return {"user_data": user}
 
 @app.get("/tasks")
-def get_all_tasks(done: bool | None = None, search: str | None = None):
+def get_all_tasks(user: dict = Depends(auth_scheme), done: bool | None = None, search: str | None = None):
     """Retrived all stored tasks"""
 
-    tasks = db.list_tasks(done, search)
+    tasks = db.list_tasks(user["id"], done, search)
 
     return tasks
 
@@ -105,10 +105,10 @@ def get_api_stats():
     return stat
 
 @app.get("/tasks/{id}")
-def get_task(id: int):
+def get_task(id: int, user: dict = Depends(auth_scheme)):
     """Get task with id from the stored tasks or 404 if not found"""
 
-    task = db.get_task(id)
+    task = db.get_task(user["id"], id)
 
     if not task:
         return JSONResponse(status_code=404, content={"error": f"Task {id} not found"})
@@ -117,7 +117,7 @@ def get_task(id: int):
     
 
 @app.post("/tasks", status_code=201)
-def create_task(task: TaskGet):
+def create_task(task: TaskGet, user: dict = Depends(auth_scheme)):
     """Create a new task
         Return 400 if title is absent or empty
     """
@@ -125,12 +125,12 @@ def create_task(task: TaskGet):
         return JSONResponse(status_code=400, content={"error": "title is empty"})
 
 
-    task = db.create_task(task.title)
+    task = db.create_task(user["id"], task.title)
 
     return task
 
 @app.put("/tasks/{id}", status_code=200)
-def update_task(id: int, data: TaskUpdate):
+def update_task(id: int, data: TaskUpdate, user: dict = Depends(auth_scheme)):
     """Update task with the id
     Return 404 if no task with that id found
     """
@@ -140,7 +140,7 @@ def update_task(id: int, data: TaskUpdate):
     if data.title == "":
         return JSONResponse(status_code=400, content={"error": "Title can't be empty"})
 
-    task = db.update_task(id, done=data.done, title=data.title)
+    task = db.update_task(user["id"], id, done=data.done, title=data.title)
 
     if task is None:
         return JSONResponse(status_code=404, content={"error": f"Task with id {id} not found"})
@@ -148,19 +148,19 @@ def update_task(id: int, data: TaskUpdate):
     return task
 
 @app.delete("/tasks/{id}", status_code=204)
-def remove_task(id: int):
+def remove_task(id: int, user: dict = Depends(auth_scheme)):
     """Remove a task from the stored tasks
 
     Return 404 if no task found
     """
 
-    task = db.remove_task(id)
+    task = db.remove_task(user["id"], id)
 
     if task is None:
         return JSONResponse(status_code=404, content={"error": f"Task with id {id} not found"})
         
 
-@app.post("/reset", status_code=204)
+@app.post("/reset", status_code=204, dependencies=[Depends(auth_scheme)])
 async def reset_tasks():
     """Reset the tasks to the initial tasks"""
     global tasks
